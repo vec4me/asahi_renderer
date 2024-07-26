@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 	int camera_position[] = {arg[camera_position_x], arg[camera_position_y], arg[camera_position_z]};
 	int pixel_direction = {arg[pixel_direction_x], arg[pixel_direction_y], arg[pixel_direction_z]};
 	int camera_rotation_y = arg[camera_rotation_y_index];
-	int window_size[] = {1920, 1080};
+	int window_size[] = {320, 200};
 	char *color_buffer = malloc(3*window_size[X]*window_size[Y]);
 	camera_position[Y] = to_float(100);
 	for (int f = 2; --f;) {
