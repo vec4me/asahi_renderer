@@ -2,13 +2,13 @@
 Integer-only 3D graphics anywhere
 
 ## Dependencies
-- Some C compiler
-- libc
+- Cargo
+- Rust
 
 ## Building
-Run the ```make.sh``` file with a POSIX-compliant shell:
+Run the following to build the program:
 ```sh
-sh make.sh
+cargo build
 ```
 
 ## Execution
