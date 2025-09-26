@@ -1,1 +1,1 @@
-gcc -Wall -lm -Wl,-s -Os render.c -o render
+tcc -lm render.c -o render

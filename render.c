@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 	int arg[7];
 	for (int i = argc; --i;) arg[i - 1] = (int)atoi(argv[i]);
 	int camera_position[] = {arg[camera_position_x], arg[camera_position_y], arg[camera_position_z]};
-	int pixel_direction = {arg[pixel_direction_x], arg[pixel_direction_y], arg[pixel_direction_z]};
+	int pixel_direction[] = {arg[pixel_direction_x], arg[pixel_direction_y], arg[pixel_direction_z]};
 	int camera_rotation_y = arg[camera_rotation_y_index];
 	int window_size[] = {320, 200};
 	char *color_buffer = malloc(3*window_size[X]*window_size[Y]);
