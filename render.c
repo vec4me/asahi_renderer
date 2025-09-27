@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define VIEW_SIZE_X 640
-#define VIEW_SIZE_Y 400
+#define VIEW_SIZE_X 320
+#define VIEW_SIZE_Y 200
 
 typedef struct {
   int x, y;
