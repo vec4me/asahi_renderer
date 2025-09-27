@@ -18,6 +18,8 @@ typedef struct {
 #define COLOR(R, G, B) r = (R), g = (G), b = (B)
 #define LERP(a, b, t) ((a) + ((((b) - (a))*(t)) >> 8))
 #define MIN(a, b) ((b) ^ (((a) ^ (b))&-((a) < (b))))
+#define MAX(a, b) ((a) ^ (((a) ^ (b))&-((a) < (b))))
+#define CLAMP(x, lo, hi) (MIN(MAX(x, lo), hi))
 
 int isqrt(unsigned n) {
   unsigned f = 0, p = 1 << 30, r = n;
@@ -60,7 +62,9 @@ uint32_t hash3(int x, int y, int z) {
 int main(int argc, char **argv) {
   if (argc < 7) {
     fprintf(stderr,
-            "Usage: %s cam_x cam_y cam_z heading light_x light_y light_z\n",
+            "Usage: %s camera_position_x camera_position_y camera_position_z "
+            "camera_heading sun_direction_x "
+            "sun_direction_y sun_direction_z\n",
             argv[0]);
     return 1;
   }
@@ -98,8 +102,8 @@ int main(int argc, char **argv) {
 
   vec3 camera_position = {atoi(argv[1]), atoi(argv[2]), atoi(argv[3])};
   int camera_heading = atoi(argv[4]);
-  vec3 light_direction = {atoi(argv[5]), atoi(argv[6]), atoi(argv[7])};
-  unit(&light_direction);
+  vec3 sun_direction = {atoi(argv[5]), atoi(argv[6]), atoi(argv[7])};
+  unit(&sun_direction);
 
   int camera_heading_cos = cos[camera_heading&255];
   int camera_heading_sin = sin[camera_heading&255];
@@ -107,6 +111,8 @@ int main(int argc, char **argv) {
   printf("P6\n%d %d\n255\n", VIEW_SIZE_X, VIEW_SIZE_Y);
 
   uint8_t *color_buffer = calloc(VIEW_SIZE_X*VIEW_SIZE_Y*3, 1);
+
+  int darkness = CLAMP(-2*sun_direction.y, 0, 255);
 
   for (int pixel_index = 0; pixel_index < VIEW_SIZE_X*VIEW_SIZE_Y;
        pixel_index++) {
@@ -140,9 +146,13 @@ int main(int argc, char **argv) {
       COLOR(188, 0, 45);
       int sky = cos[((cos[((hit.z >> 13)&255)] + (hit.x >> 11))&255)] +
                 cos[hit.z/1200&255]/3 - 10;
-      if (sky < 0)
-        r = g = b = sky;
-      else if (dot(&pixel_direction, &light_direction) < 64000) {
+      if (sky < 0) {
+        sky &= 255;
+        r = sky;
+        g = sky;
+        b = sky;
+      }
+      else if (dot(&pixel_direction, &sun_direction) < 64000) {
         COLOR(128 - 128*pixel_direction.y/255,
               179 - 179*pixel_direction.y/255,
               255 - 76*pixel_direction.y/255);
@@ -181,6 +191,10 @@ int main(int argc, char **argv) {
         }
       }
     }
+
+    r = LERP(r, 0, darkness);
+    g = LERP(g, 0, darkness);
+    b = LERP(b, 0, darkness >> 2);
 
     color_buffer[pixel_index*3 + 0] = r;
     color_buffer[pixel_index*3 + 1] = g;
