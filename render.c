@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define VIEW_SIZE_X 320
-#define VIEW_SIZE_Y 200
+#define VIEW_SIZE_X 640
+#define VIEW_SIZE_Y 400
 
 typedef struct {
   int x, y;
@@ -16,6 +16,8 @@ typedef struct {
 #define MULTIPLY(value, factor) (((value)*(factor)) >> 8)
 #define DIVIDE(value, n) (((value) << 8)/(n))
 #define COLOR(R, G, B) r = (R), g = (G), b = (B)
+#define LERP(a, b, t) ((a) + ((((b) - (a))*(t)) >> 8))
+#define MIN(a, b) ((b) ^ (((a) ^ (b))&-((a) < (b))))
 
 int isqrt(unsigned n) {
   unsigned f = 0, p = 1 << 30, r = n;
@@ -47,6 +49,12 @@ void unit(vec3 *v) {
     v->y = DIVIDE(v->y, n);
     v->z = DIVIDE(v->z, n);
   }
+}
+
+uint32_t hash3(int x, int y, int z) {
+  uint32_t n = (uint32_t)(x*73856093 ^ y*19349663 ^ z*83492791);
+  n = (n ^ (n >> 13))*1274126177;
+  return n;
 }
 
 int main(int argc, char **argv) {
@@ -83,7 +91,7 @@ int main(int argc, char **argv) {
 
   int cos[256];
   for (int i = 0; i < 256; i++) {
-    cos[i] = sin[(i + 65)&255];
+    cos[i] = sin[(i + 64)&255];
   }
 
   unsigned r = 0, g = 0, b = 0;
@@ -107,14 +115,22 @@ int main(int argc, char **argv) {
     vec2 view_offset = {VIEW_SIZE_X - (pixel_position.x << 1),
                         VIEW_SIZE_Y - (pixel_position.y << 1)};
     vec3 pixel_direction = {
-        view_offset.x*camera_heading_cos/VIEW_SIZE_Y - camera_heading_sin,
+        -view_offset.x*camera_heading_cos/VIEW_SIZE_Y - camera_heading_sin,
         (view_offset.y << 7)/VIEW_SIZE_Y,
-        view_offset.x*camera_heading_sin/VIEW_SIZE_Y + camera_heading_cos};
+        view_offset.x*camera_heading_sin/VIEW_SIZE_Y - camera_heading_cos};
+
     unit(&pixel_direction);
 
-    int pixel_distance = pixel_direction.y != 0
-                             ? DIVIDE(camera_position.y, pixel_direction.y)
-                             : 0;
+    int pixel_distance;
+    if (pixel_direction.y > 0) {
+      pixel_distance = 100000/pixel_direction.y;
+    }
+    else if (pixel_direction.y < 0) {
+      pixel_distance = camera_position.y/-pixel_direction.y;
+    }
+    else {
+      pixel_distance = 1000000;
+    }
 
     vec3 hit = {camera_position.x + pixel_distance*pixel_direction.x,
                 camera_position.y + pixel_distance*pixel_direction.y,
@@ -122,8 +138,8 @@ int main(int argc, char **argv) {
 
     if (pixel_direction.y > 0) {
       COLOR(188, 0, 45);
-      int sky = cos[((cos[((hit.z >> 11)&255)] + (hit.x >> 8)) >> 1&255)] +
-                cos[(hit.z/500&255)]/4 + 30;
+      int sky = cos[((cos[((hit.z >> 13)&255)] + (hit.x >> 11))&255)] +
+                cos[hit.z/1200&255]/3 - 10;
       if (sky < 0)
         r = g = b = sky;
       else if (dot(&pixel_direction, &light_direction) < 64000) {
@@ -134,13 +150,34 @@ int main(int argc, char **argv) {
     }
     else if (pixel_direction.y < 0) {
       if (!(((hit.x >> 13)%7)*((hit.z >> 13)%9) != 0)) {
-        COLOR(100, 100, 110);
+        COLOR(120, 110, 90);
+
+        int texture = 0;
+        texture += hash3(hit.z >> 8, hit.x >> 8, 1)&255 >> 3;
+        texture += hash3(hit.z >> 8, hit.x >> 8, 5)&255 >> 2;
+        texture >>= 2;
+
+        r += texture;
+        g += texture;
+        b += texture;
       }
       else {
         COLOR(60, sin[(hit.x/20&255)]/2 + 55, 0);
         if (g > 200) {
-          g = 60;
-          b = 120;
+          int reflective_index =
+              pixel_position.x + VIEW_SIZE_X*(VIEW_SIZE_Y - pixel_position.y);
+
+          r = color_buffer[reflective_index*3 + 0];
+          g = color_buffer[reflective_index*3 + 1];
+          b = color_buffer[reflective_index*3 + 2];
+
+          r = (r + 100)/2;
+          g = (g + 120)/2;
+          b = (b + 200)/2;
+
+          r = MIN(LERP(0, r, pixel_distance << 1), 0xc0);
+          g = MIN(LERP(0, g, pixel_distance << 1), 0xc0);
+          b = MIN(LERP(0, b, pixel_distance << 1), 0xc0);
         }
       }
     }
