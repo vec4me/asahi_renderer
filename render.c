@@ -135,7 +135,9 @@ int main(int argc, char **argv) {
       pixel_distance = camera_position.y/-pixel_direction.y;
     }
     else {
-      pixel_distance = 1000000;
+      COLOR(128 - 128*pixel_direction.y/255,
+            179 - 179*pixel_direction.y/255,
+            255 - 76*pixel_direction.y/255);
     }
 
     vec3 hit = {camera_position.x + pixel_distance*pixel_direction.x,
